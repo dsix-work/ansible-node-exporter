@@ -6,7 +6,36 @@
     owner: root
     group: root
     mode: 0644
-  notify: restart node_exporter
+  notify:
+    - reload systemd
+    - restart node_exporter
+
+- name: create init service unit
+  template:
+    src: node_exporter.conf.j2
+    dest: /etc/init/node_exporter.conf
+    owner: root
+    group: root
+    mode: 0644
+  when:
+    - service_mgr | default(ansible_service_mgr) == 'upstart'
+    - ansible_os_family != "RedHat"
+  notify:
+    - reinit node exporter
+    - restart node_exporter
+
+- name: create sysvinit service unit
+  template:
+    src: node_exporter.j2
+    dest: /etc/init.d/node_exporter
+    owner: root
+    group: root
+    mode: 0755
+  when:
+    - ansible_os_family == "RedHat"
+    - ansible_distribution_major_version == "6"
+  notify:
+    - restart node exporter
 
 - name: Create textfile collector dir
   file:
@@ -27,3 +56,11 @@
   when:
     - ansible_version.full is version_compare('2.4', '>=')
     - ansible_selinux.status == "enabled"
+
+- meta: flush_handlers
+
+- name: ensure prometheus node exporter service is enabled and started
+  service:
+    name: node_exporter
+    state: started
+    enabled: yes

@@ -1,7 +1,12 @@
 ---
 - name: restart node_exporter
-  become: true
-  systemd:
-    daemon_reload: true
+  service:
     name: node_exporter
     state: restarted
+
+- name: reload systemd
+  systemd:
+    daemon_reload: yes
+
+- name: reinit node exporter
+  command: initctl reload-configuration

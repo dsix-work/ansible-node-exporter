@@ -1,20 +1,28 @@
 ---
-- name: Assert usage of systemd as an init system
-  assert:
-    that: ansible_service_mgr == 'systemd'
-    msg: "This role only works with systemd"
+#- name: Assert usage of systemd as an init system
+#  assert:
+#    that: ansible_service_mgr == 'systemd'
+#    msg: "This role only works with systemd"
+- name: systemd version
+  block:
+    - name: Get systemd version
+      command: systemctl --version
+      changed_when: false
+      check_mode: false
+      register: __systemd_version
+      tags:
+        - skip_ansible_lint
 
-- name: Get systemd version
-  command: systemctl --version
+    - name: Set systemd version fact
+      set_fact:
+        node_exporter_systemd_version: "{{ __systemd_version.stdout_lines[0] | regex_replace('^systemd\\s(\\d+).*$', '\\1') }}"
+  when: service_mgr | default(ansible_service_mgr) == 'systemd'
+
+- name: get upstart version
+  command: initctl version
+  when: service_mgr | default(ansible_service_mgr) == 'upstart'
+  register: upstart_version
   changed_when: false
-  check_mode: false
-  register: __systemd_version
-  tags:
-    - skip_ansible_lint
-
-- name: Set systemd version fact
-  set_fact:
-    node_exporter_systemd_version: "{{ __systemd_version.stdout_lines[0] | regex_replace('^systemd\\s(\\d+).*$', '\\1') }}"
 
 - name: Naive assertion of proper listen address
   assert:
