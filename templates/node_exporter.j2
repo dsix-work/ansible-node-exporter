@@ -21,33 +21,40 @@
 # Source function library.
 . /etc/rc.d/init.d/functions
 
-exec="{{ _node_exporter_binary_install_dir }}/node_exporter"
-prog="node_exporter"
+EXEC="{{ _node_exporter_binary_install_dir }}/node_exporter"
+PROG="node_exporter"
+USER="{{ _node_exporter_system_user }}"
+LOGFILE="/var/log/monitoring/$PROG.log"
 # node_exporter is not able to manage configuration file
 #config="<path to major config file>"
 
-[ -e /etc/sysconfig/$prog ] && . /etc/sysconfig/$prog
+[ -e /etc/sysconfig/$PROG ] && . /etc/sysconfig/$PROG
 
-lockfile=/var/lock/subsys/$prog
+LOCKFILE=/var/lock/subsys/$PROG
+
+prepare() {
+    mkdir -p `dirname $LOGFILE` || true
+    chown -R $USER: `dirname $LOGFILE`
+}
 
 start() {
-    [ -x $exec ] || exit 5
+    [ -x $EXEC ] || exit 5
     #[ -f $config ] || exit 6
-    echo -n $"Starting $prog: "
-    # if not running, start it up here, usually something like "daemon $exec"
-    daemon --user {{ _node_exporter_system_user }} $exec {% for collector in node_exporter_enabled_collectors %}--collector.{{ collector }} {% endfor %} {% for collector in node_exporter_disabled_collectors %}--no-collector.{{ collector }} {% endfor %} {% for flag, flag_value in node_exporter_config_flags.items() %}--{{ flag }}={{ flag_value }} {% endfor %} --web.listen-address={{ node_exporter_web_listen_address }} &
-    [ $? -eq 0 ] && touch $lockfile
-    return $retval
+    echo -n $"Starting $PROG: "
+    # if not running, start it up here, usually something like "daemon $EXEC"
+    daemon --user $USER $EXEC {% for collector in node_exporter_enabled_collectors %}--collector.{{ collector }} {% endfor %} {% for collector in node_exporter_disabled_collectors %}--no-collector.{{ collector }} {% endfor %} {% for flag, flag_value in node_exporter_config_flags.items() %}--{{ flag }}={{ flag_value }} {% endfor %} --web.listen-address={{ node_exporter_web_listen_address }} >> $LOGFILE &
+    [ $? -eq 0 ] && touch $LOCKFILE
+    return $RETVAL
 }
 
 stop() {
-    echo -n $"Stopping $prog: "
-    # stop it here, often "killproc $prog"
-    killproc $exec
-    retval=$?
+    echo -n $"Stopping $PROG: "
+    # stop it here, often "killproc $PROG"
+    killproc $EXEC
+    RETVAL=$?
     echo
-    [ $retval -eq 0 ] && rm -f $lockfile
-    return $retval
+    [ $RETVAL -eq 0 ] && rm -f $LOCKFILE
+    return $RETVAL
 }
 
 restart() {
@@ -65,7 +72,7 @@ force_reload() {
 
 rh_status() {
     # run checks to determine if the service is running or use generic status
-    status $prog
+    status $PROG
 }
 
 rh_status_q() {

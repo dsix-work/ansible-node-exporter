@@ -37,7 +37,7 @@
     - ansible_os_family == "RedHat"
     - ansible_distribution_major_version == "6"
   notify:
-    - restart node exporter
+    - restart node_exporter
 
 - name: Create textfile collector dir
   file:

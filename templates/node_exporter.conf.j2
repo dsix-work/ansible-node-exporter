@@ -5,14 +5,10 @@ start on (runlevel [345] and started network)
 stop on (runlevel [!345] or stopping network)
 
 respawn
-{% if upstart_version.stdout | replace("init (upstart ", "") |replace(")","") is version('1.4', '>=') %}
-setuid {{ _node_exporter_system_user }}
-setgid {{ _node_exporter_system_group }}
-{% endif %}
 
 script
-  exec >> "{{ prometheus_exporters_common_log_dir }}/node-exporter.log"
+  exec >> "/var/log/monitoring/node_exporter.log"
   exec 2>&1
-  exec {{ _node_exporter_binary_install_dir }}/node_exporter {% for collector in node_exporter_enabled_collectors %}--collector.{{ collector }} {% endfor %} {% for collector in node_exporter_disabled_collectors %}--no-collector.{{ collector }} {% endfor %} {% for flag, flag_value in node_exporter_config_flags.items() %}--{{ flag }}={{ flag_value }} {% endfor %} --web.listen-address={{ node_exporter_web_listen_address }}
+  exec  start-stop-daemon --start -c {{ _node_exporter_system_user }} --exec {{ _node_exporter_binary_install_dir }}/node_exporter --name node_exporter  -- {% for collector in node_exporter_enabled_collectors %}--collector.{{ collector }} {% endfor %} {% for collector in node_exporter_disabled_collectors %}--no-collector.{{ collector }} {% endfor %} {% for flag, flag_value in node_exporter_config_flags.items() %}--{{ flag }}={{ flag_value }} {% endfor %} --web.listen-address={{ node_exporter_web_listen_address }}
 
 end script
