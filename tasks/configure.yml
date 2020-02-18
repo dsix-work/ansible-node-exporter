@@ -9,6 +9,8 @@
   notify:
     - reload systemd
     - restart node_exporter
+  when:
+    - service_mgr | default(ansible_service_mgr) == 'systemd'
 
 - name: create init service unit
   template:
