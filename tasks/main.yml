@@ -40,4 +40,6 @@
     name: node_exporter
     state: started
     enabled: true
+  when:
+    - service_mgr | default(ansible_service_mgr) != 'systemd'
 
